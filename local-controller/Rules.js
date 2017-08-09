@@ -166,7 +166,7 @@ function Rules (fileName){
 						return null;
 					}//if
 					conditionLine = conditionLine + " " + token;
-					state = "expectingValue";
+					state = "expectingIdentifier";
 					break;
 				default:
 					if (token.indexOf('.') > 0){

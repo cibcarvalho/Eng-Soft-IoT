@@ -33,6 +33,8 @@ function Rules (fileName){
 				console.log("Comentário: " + line)
 
 			}else{
+				line = line.trim();
+
 				var splittedRule = line.split(':');
 
 				// Carregar regra

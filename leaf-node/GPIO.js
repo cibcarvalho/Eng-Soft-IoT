@@ -7,15 +7,25 @@ var PORT_DIRECTION = {
 	OUTPUT: 'out'
 }
 
+var PULL_MODE = {
+	HIGH: 'high',
+	LOW: 'low'
+}
+
 // Definição da classe
 function GPIOPort (portNumber) {
 	this.port = portNumber;
    this.valueFile = "/sys/class/gpio/gpio" + portNumber + "/value";
 	this.directionFile = "/sys/class/gpio/gpio" + portNumber + "/direction";
 	this.desiredDirection = null;
+	this.desiredPullMode = null;
 	this.configuredDirection = null;
+	this.configuredPullMode = null;
 	this.readyCallback = null;
 
+	this.getPort = function(){
+		return this.port;
+	};
 	this.isOpen = function(){
 		return fs.existsSync(this.valueFile);
 	};
@@ -23,7 +33,7 @@ function GPIOPort (portNumber) {
 		this.configuredDirection = fs.readFileSync(this.directionFile, "utf-8").trim();
 		return this.configuredDirection;
 	};
-	this.open = function(direction, readyCallbackParam){
+	this.open = function(direction, readyCallbackParam, pullMode){
 		// Se o parâmetro não está adequado
 		if (direction != PORT_DIRECTION.INPUT && direction != PORT_DIRECTION.OUTPUT){
 			console.log("GPIOPort.open port:" + this.port + " - Parâmetro não reconhecido: " + direction);
@@ -31,47 +41,46 @@ function GPIOPort (portNumber) {
 			return;
 		}//if
 
+		if(pullMode == null){
+			pullMode = PULL_MODE.LOW;
+
+		}else{
+			if (pullMode != PULL_MODE.LOW && pullMode != PULL_MODE.HIGH){
+				console.log("GPIOPort.open port:" + this.port + " - Parâmetro não reconhecido: " + pullMode);
+				console.log("GPIOPort.open port:" + this.port + " - Parâmetros válidos: 'in' ou 'out'");
+				return;
+			}//if
+		}//if
+
 		this.readyCallback = readyCallbackParam;
 		this.desiredDirection = direction;
+		this.desiredPullMode = pullMode;
 
 		// Async
 		fs.access(this.valueFile, fs.constants.F_OK, (err) => {
 			
 			if (err){// porta fechada
 				// Abrir porta
-				fs.writeFile("/sys/class/gpio/export", this.port.toString(), "utf-8", (err) => {
-					if (err) throw err;
-					setTimeout(this.asyncCheckDirection.bind(this), 1000);
-				});
+				fs.writeFileSync("/sys/class/gpio/export", this.port.toString(), "utf-8");
+				setTimeout(this.asyncSetDirection.bind(this), 300);
 
 			}else{// Porta aberta
 				console.log("GPIOPort.open port:" + this.port + " - Porta já está aberta");
-				this.asyncCheckDirection();
+				this.asyncSetDirection();
 			}//if-else
 		});
-	};
-	this.asyncCheckDirection = function (){
-		fs.readFile(this.directionFile, "utf-8", (err, data) => {
-			if (err){
-				throw err;
-			}else{
-				this.configuredDirection = data.trim();
-				// Se está na direção correta
-				if (this.desiredDirection == this.configuredDirection){
-					console.log("GPIOPort.open port:" + this.port + " - Porta já está na direção desejada: " + this.configuredDirection);
-					setTimeout(this.readyCallback, 0);
-
-				}else{// Senão, mudar direção
-					console.log("GPIOPort.open port:" + this.port + " - Configurando direção");
-					setTimeout(this.asyncSetDirection.bind(this), 1000);
-				}//if-else
-			}//if-else
-		});//readFile
 	};
 	this.asyncSetDirection = function(){
 		fs.writeFile(this.directionFile, this.desiredDirection, "utf-8", (err) =>{
 			if(err) throw err;
 			this.configuredDirection = this.desiredDirection;
+			this.asyncSetPullMode();
+		});
+	};
+	this.asyncSetPullMode = function(){
+		fs.writeFile(this.directionFile, this.desiredPullMode, "utf-8", (err) =>{
+			if(err) throw err;
+			this.configuredPullMode = this.desiredPullMode;
 			setTimeout(this.readyCallback, 0);
 		});
 	};
@@ -96,3 +105,4 @@ function GPIOPort (portNumber) {
 
 module.exports.GPIOPort = GPIOPort;
 module.exports.PORT_DIRECTION = PORT_DIRECTION;
+module.exports.PULL_MODE = PULL_MODE;

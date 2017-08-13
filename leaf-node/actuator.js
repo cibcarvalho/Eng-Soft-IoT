@@ -131,9 +131,12 @@ function onCommand(cmd) {
 
 // Funções de leitura dos sensores
 function lerSensores(){
-	lerSensor(18);
-	lerSensor(23);
-	lerSensor(24);
+	for(var sensorIndex =0; sensorIndex < sensores.length; sensorIndex++){
+		var sensor = sensores[sensorIndex];
+		if(sensor != null){
+			lerSensor(sensorIndex);
+		}//if
+	}//for
 }
 
 function lerSensor(idSensor){

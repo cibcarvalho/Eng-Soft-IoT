@@ -45,5 +45,5 @@ PREPARAR O LEAF-NODE (no Raspberry)
 
 - Uma vez realizado o passo anterior pela primeira vez, para executar, rodar o comando:
 
-  nodejs controller.js
+  nodejs actuator.js
 
